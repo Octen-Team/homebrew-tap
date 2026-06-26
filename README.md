@@ -10,15 +10,6 @@ One command (taps automatically):
 brew install Octen-Team/tap/octen
 ```
 
-Or tap once and use the short name:
-
-```sh
-brew tap Octen-Team/tap
-brew install octen
-```
-
-On Homebrew 6+ you may be asked to trust the tap the first time: `brew trust octen-team/tap`.
-
 ## Uninstall
 
 ```sh
