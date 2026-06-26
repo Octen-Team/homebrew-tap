@@ -1,12 +1,21 @@
 # Octen Homebrew tap
 
-Install the standalone [Octen CLI](https://github.com/Octen-Team/octen-cli) — no Node.js required:
+Install the standalone [Octen CLI](https://github.com/Octen-Team/octen-cli) — no Node.js required.
+
+One command (taps automatically):
+
+```sh
+brew install Octen-Team/tap/octen
+```
+
+Or tap once and use the short name:
 
 ```sh
 brew tap Octen-Team/tap
 brew install octen
-# Homebrew 6+ may ask you to trust the tap first: brew trust octen-team/tap
 ```
+
+On Homebrew 6+ you may be asked to trust the tap the first time: `brew trust octen-team/tap`.
 
 Then set your API key and go:
 
