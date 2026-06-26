@@ -2,6 +2,8 @@
 
 Install the standalone [Octen CLI](https://github.com/Octen-Team/octen-cli) — no Node.js required.
 
+## Install
+
 One command (taps automatically):
 
 ```sh
@@ -16,6 +18,13 @@ brew install octen
 ```
 
 On Homebrew 6+ you may be asked to trust the tap the first time: `brew trust octen-team/tap`.
+
+## Uninstall
+
+```sh
+brew uninstall octen
+brew untap Octen-Team/tap   # optional — also removes the tap
+```
 
 Then set your API key and go:
 
