@@ -1,28 +1,28 @@
 class Octen < Formula
   desc "Octen CLI — web search, extract, chat, embeddings, and MCP/Skills setup"
   homepage "https://github.com/Octen-Team/octen-cli"
-  version "0.3.0"
+  version "0.5.0"
   license "MIT"
 
   on_macos do
     on_arm do
-      url "https://github.com/Octen-Team/octen-cli/releases/download/v0.3.0/octen-darwin-arm64"
-      sha256 "3189fb3d93733922fcad6c55bfe8a092d138cab74fec38b86a90a2bbf575fb16"
+      url "https://github.com/Octen-Team/octen-cli/releases/download/v0.5.0/octen-darwin-arm64"
+      sha256 "74f6c62ac42fa9603b240e361701b5933037a959b5545c84f860d06aaabf67b4"
     end
     on_intel do
-      url "https://github.com/Octen-Team/octen-cli/releases/download/v0.3.0/octen-darwin-x64"
-      sha256 "1765106829ca9e67e01d69cdd20baf42ae9b4882889db92d166c28ae3e0e4781"
+      url "https://github.com/Octen-Team/octen-cli/releases/download/v0.5.0/octen-darwin-x64"
+      sha256 "d06960bc0b61eb9e8e29cf9861aebfc2804f974cef7f802780442246fd94522b"
     end
   end
 
   on_linux do
     on_arm do
-      url "https://github.com/Octen-Team/octen-cli/releases/download/v0.3.0/octen-linux-arm64"
-      sha256 "31bfb14e0ce06d771a522cca8e46b36ccf3c8a971631d5ad2f760790b3c4c12d"
+      url "https://github.com/Octen-Team/octen-cli/releases/download/v0.5.0/octen-linux-arm64"
+      sha256 "a497ab189942c1b9376fdbb8f7a82f61ac0bc1871240a43424f721ccf836f5f1"
     end
     on_intel do
-      url "https://github.com/Octen-Team/octen-cli/releases/download/v0.3.0/octen-linux-x64"
-      sha256 "21b4e5404d96ea19515f2daf84149707b16cff29bb9d8319c14820494b63b16a"
+      url "https://github.com/Octen-Team/octen-cli/releases/download/v0.5.0/octen-linux-x64"
+      sha256 "a81967dc05d94235191b23a6c2078d89172fb3bf482dc96f1f316fdd495a7cda"
     end
   end
 
