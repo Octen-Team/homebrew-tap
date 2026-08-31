@@ -1,0 +1,149 @@
+name: Sync formula
+
+# Keeps Formula/octen.rb pointed at the newest octen-cli release.
+#
+# It lives here rather than in octen-cli's release workflow because pushing to
+# this repository needs a credential octen-cli does not have: its GITHUB_TOKEN
+# is scoped to itself, and the repo carries no secrets (npm publishing uses
+# OIDC). Polling from this side needs nothing beyond the default token.
+#
+# The tap sat on 0.5.5 while npm was on 0.7.0 — v0.6.0 shipped and nobody ran
+# scripts/update-formula.sh. That is the gap this closes.
+#
+# repository_dispatch is wired up so a release can trigger this immediately if
+# a cross-repo token is ever added to octen-cli; until then the schedule is
+# what actually keeps the tap current.
+
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to pin, e.g. 0.7.0. Empty = newest release."
+        required: false
+        type: string
+  repository_dispatch:
+    types: [octen-cli-release]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-formula
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Both the dispatch payload and the manual input are caller-supplied, and
+      # the result ends up in a shell argument, so it is read through env (never
+      # interpolated into a script) and must match the version shape exactly.
+      # An anchored regex, not a case glob: `[0-9]*.[0-9]*.[0-9]*` ends in `*`,
+      # which happily swallows `1.2.3; rm -rf /`.
+      - name: Work out the target version
+        id: target
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INPUT_VERSION: ${{ inputs.version }}
+          DISPATCH_VERSION: ${{ github.event.client_payload.version }}
+        run: |
+          set -euo pipefail
+          want="${INPUT_VERSION:-${DISPATCH_VERSION:-}}"
+          if [ -z "$want" ]; then
+            # Newest *published* release, not the newest tag: a tag whose
+            # binaries job is still running has no SHA256SUMS.txt yet.
+            want=$(gh release view --repo Octen-Team/octen-cli \
+                     --json tagName --jq .tagName)
+          fi
+          want="${want#v}"
+          if [[ ! "$want" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::not a version: '$want'"
+            exit 1
+          fi
+
+          have=$(sed -n 's/^  version "\(.*\)"$/\1/p' Formula/octen.rb)
+          if [ -z "$have" ]; then
+            echo "::error::no version line in Formula/octen.rb"
+            exit 1
+          fi
+
+          echo "have=$have" >> "$GITHUB_OUTPUT"
+          echo "want=$want" >> "$GITHUB_OUTPUT"
+          if [ "$have" = "$want" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "already on $have"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "$have -> $want"
+          fi
+
+      - name: Rewrite the formula
+        if: steps.target.outputs.changed == 'true'
+        env:
+          WANT: ${{ steps.target.outputs.want }}
+        run: ./scripts/update-formula.sh "$WANT"
+
+      # The script fails on a missing checksum, but a formula that parses and
+      # carries four distinct sha256 values is the property that matters: a
+      # duplicated or empty one installs the wrong binary on some platform.
+      - name: Check the result before pushing it
+        if: steps.target.outputs.changed == 'true'
+        env:
+          WANT: ${{ steps.target.outputs.want }}
+        run: |
+          set -euo pipefail
+          f=Formula/octen.rb
+          ruby -c "$f"
+
+          v=$(sed -n 's/^  version "\(.*\)"$/\1/p' "$f")
+          if [ "$v" != "$WANT" ]; then
+            echo "::error::version line says '$v', expected '$WANT'"
+            exit 1
+          fi
+
+          for p in darwin-arm64 darwin-x64 linux-arm64 linux-x64; do
+            if ! grep -q "releases/download/v$v/octen-$p\"" "$f"; then
+              echo "::error::no v$v url for $p"
+              exit 1
+            fi
+          done
+
+          shas=$(grep -oE 'sha256 "[0-9a-f]{64}"' "$f" | sort -u | wc -l)
+          if [ "$shas" -ne 4 ]; then
+            echo "::error::expected 4 distinct sha256 values, found $shas"
+            exit 1
+          fi
+
+          echo "--- formula ---" && cat "$f"
+
+      - name: Commit
+        if: steps.target.outputs.changed == 'true'
+        env:
+          WANT: ${{ steps.target.outputs.want }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Formula/octen.rb
+          if git diff --cached --quiet; then
+            echo "nothing to commit"
+            exit 0
+          fi
+          git commit -m "octen $WANT"
+          git push
+
+      - name: Summary
+        env:
+          CHANGED: ${{ steps.target.outputs.changed }}
+          HAVE: ${{ steps.target.outputs.have }}
+          WANT: ${{ steps.target.outputs.want }}
+        run: |
+          if [ "$CHANGED" = "true" ]; then
+            echo "Formula updated: **$HAVE → $WANT**" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Already on **$HAVE** — nothing to do." >> "$GITHUB_STEP_SUMMARY"
+          fi
